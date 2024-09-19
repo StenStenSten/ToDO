@@ -1,4 +1,4 @@
-const tasks = [
+const tasks = JSON.parse(localStorage.getItem('tasks')) || [
     {
         id: 1,
         name: 'Task 1',
@@ -10,7 +10,7 @@ const tasks = [
         completed: true
     }
 ];
-let lastTaskId = 2;
+let lastTaskId = parseInt(localStorage.getItem('lastTaskId')) || 2;
 
 let taskList;
 let addTask;
@@ -40,9 +40,10 @@ function createTask() {
     const task = {
         id: lastTaskId,
         name: 'Task ' + lastTaskId,
-        completed: false
-    };
-    tasks.push(task);
+        completed: false,
+    }
+    tasks.push(task); 
+    saveTasksToLocalStorage(); 
     return task;
 }
 
@@ -53,6 +54,10 @@ function createTaskRow(task) {
     // Täidame vormi väljad andmetega
     const name = taskRow.querySelector("[name='name']");
     name.value = task.name;
+    name.addEventListener('keydown', () => {
+        task.name = name.value;
+        saveTasksToLocalStorage();
+    });
 
     const checkbox = taskRow.querySelector("[name='completed']");
     checkbox.checked = task.completed;
@@ -61,27 +66,24 @@ function createTaskRow(task) {
     deleteButton.addEventListener('click', () => {
         taskList.removeChild(taskRow);
         tasks.splice(tasks.indexOf(task), 1);
+        saveTasksToLocalStorage();
+
     });
 
     // Valmistame checkboxi ette vajutamiseks
-    hydrateAntCheckboxes(taskRow);
+    hydrateAntCheckboxes(taskRow, task);
 
     return taskRow;
+    return task;
 }
 
 
-function createAntCheckbox() {
-    const checkbox = document.querySelector('[data-template="ant-checkbox"]').cloneNode(true);
-    checkbox.removeAttribute('data-template');
-    hydrateAntCheckboxes(checkbox);
-    return checkbox;
-}
 
 /**
  * See funktsioon aitab lisada eridisainiga checkboxile vajalikud event listenerid
  * @param {HTMLElement} element Checkboxi wrapper element või konteiner element mis sisaldab mitut checkboxi
  */
-function hydrateAntCheckboxes(element) {
+function hydrateAntCheckboxes(element, task) {
     const elements = element.querySelectorAll('.ant-checkbox-wrapper');
     for (let i = 0; i < elements.length; i++) {
         let wrapper = elements[i];
@@ -103,6 +105,12 @@ function hydrateAntCheckboxes(element) {
         // Kui inputi peale vajutatakse siis uuendatakse checkboxi kujundust
         input.addEventListener('change', () => {
             checkbox.classList.toggle('ant-checkbox-checked');
+            task.completed = input.checked; 
+            saveTasksToLocalStorage();
         });
     }
 }
+function saveTasksToLocalStorage() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('lastTaskId', lastTaskId);
+}   
