@@ -74,7 +74,6 @@ function createTaskRow(task) {
     hydrateAntCheckboxes(taskRow, task);
 
     return taskRow;
-    return task;
 }
 
 
@@ -113,4 +112,20 @@ function hydrateAntCheckboxes(element, task) {
 function saveTasksToLocalStorage() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
     localStorage.setItem('lastTaskId', lastTaskId);
-}   
+}    
+
+
+
+// Debugging logs
+console.log('Processing checkbox:', input, 'Task:', task);
+
+if (input.checked) {
+    checkbox.classList.add('ant-checkbox-checked');
+}
+
+input.addEventListener('change', () => {
+    checkbox.classList.toggle('ant-checkbox-checked');
+    task.completed = input.checked; 
+    console.log('Task completed status changed:', task);
+    saveTasksToLocalStorage();
+});
