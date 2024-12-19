@@ -15,12 +15,17 @@ let lastTaskId = parseInt(localStorage.getItem('lastTaskId')) || 2;
 let taskList;
 let addTask;
 
+function renderTask(task) {
+    const taskRow = createTaskRow(task);
+    taskList.appendChild(taskRow);
+}
+
 // kui leht on brauseris laetud siis lisame esimesed taskid lehele
 window.addEventListener('load', () => {
     taskList = document.querySelector('#task-list');
     addTask = document.querySelector('#add-task');
 
-    tasks.forEach(renderTask);
+   tasks.forEach(renderTask); 
 
     // kui nuppu vajutatakse siis lisatakse uus task
     addTask.addEventListener('click', () => {
@@ -29,11 +34,6 @@ window.addEventListener('load', () => {
         taskList.appendChild(taskRow); // Lisame taski lehele
     });
 });
-
-function renderTask(task) {
-    const taskRow = createTaskRow(task);
-    taskList.appendChild(taskRow);
-}
 
 function createTask() {
     lastTaskId++;
@@ -116,16 +116,4 @@ function saveTasksToLocalStorage() {
 
 
 
-// Debugging logs
-console.log('Processing checkbox:', input, 'Task:', task);
 
-if (input.checked) {
-    checkbox.classList.add('ant-checkbox-checked');
-}
-
-input.addEventListener('change', () => {
-    checkbox.classList.toggle('ant-checkbox-checked');
-    task.completed = input.checked; 
-    console.log('Task completed status changed:', task);
-    saveTasksToLocalStorage();
-});
