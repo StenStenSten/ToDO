@@ -26,7 +26,6 @@
 
     
     <div style="display: none">
-        <!-- Templates, so you don't have to mess with document.createElement -->
         <label class="ant-checkbox-wrapper" data-template="ant-checkbox">
             <span class="ant-checkbox">
                 <input type="checkbox" class="ant-checkbox-input" value="">
@@ -63,6 +62,11 @@
             </div>
         </li>
     </div>
+    <script>
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'login.html';
+        }
+    </script>
 </body>
 
 </html>

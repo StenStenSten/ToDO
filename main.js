@@ -1,119 +1,135 @@
-const tasks = JSON.parse(localStorage.getItem('tasks')) || [
-    {
-        id: 1,
-        name: 'Task 1',
-        completed: false
-    },
-    {
-        id: 2,
-        name: 'Task 2',
-        completed: true
-    }
-];
-let lastTaskId = parseInt(localStorage.getItem('lastTaskId')) || 2;
-
 let taskList;
 let addTask;
+let tasks = [];
 
-function renderTask(task) {
-    const taskRow = createTaskRow(task);
-    taskList.appendChild(taskRow);
-}
-
-// kui leht on brauseris laetud siis lisame esimesed taskid lehele
 window.addEventListener('load', () => {
     taskList = document.querySelector('#task-list');
     addTask = document.querySelector('#add-task');
 
-   tasks.forEach(renderTask); 
+    if (localStorage.getItem('token')) {
+        loadTasksFromServer();
+    } else {
+        window.location.href = 'login.html';  
+    }
 
-    // kui nuppu vajutatakse siis lisatakse uus task
-    addTask.addEventListener('click', () => {
-        const task = createTask(); // Teeme kõigepealt lokaalsesse "andmebaasi" uue taski
-        const taskRow = createTaskRow(task); // Teeme uue taski HTML elementi mille saaks lehe peale listi lisada
-        taskList.appendChild(taskRow); // Lisame taski lehele
+    addTask.addEventListener('click', async () => {
+        const newTask = await createTaskOnServer();
+        tasks.push(newTask);
+        const taskRow = createTaskRow(newTask);
+        taskList.appendChild(taskRow);
     });
 });
 
-function createTask() {
-    lastTaskId++;
-    const task = {
-        id: lastTaskId,
-        name: 'Task ' + lastTaskId,
-        completed: false,
+async function loadTasksFromServer() {
+    const response = await fetch('/api/tasks', {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    });
+
+    if (!response.ok) {
+        console.error("Failed to load tasks", response.statusText);
+        return;
     }
-    tasks.push(task); 
-    saveTasksToLocalStorage(); 
-    return task;
+
+    tasks = await response.json();
+    taskList.innerHTML = '';
+    tasks.forEach(task => {
+        const taskRow = createTaskRow(task);
+        taskList.appendChild(taskRow);
+    });
+}
+
+async function createTaskOnServer() {
+    const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify({
+            title: 'New Task',
+            description: '',
+            marked_as_done: false  
+        })
+    });
+
+    if (!response.ok) {
+        console.error("Failed to create task", response.statusText);
+        return null;
+    }
+
+    return await response.json();
+}
+
+async function updateTaskOnServer(task) {
+    console.log(`Updating task with ID: ${task.id} | marked_as_done: ${task.marked_as_done}`);
+
+    const response = await fetch(`/api/tasks/${task.id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify({
+            title: task.title,
+            description: task.description,
+            marked_as_done: task.marked_as_done  
+        })
+    });
+
+    if (!response.ok) {
+        console.error(`Failed to update task with id ${task.id}`, response.statusText);
+    } else {
+        console.log(`Updated task:`, task);
+    }
+}
+
+async function deleteTaskFromServer(taskId) {
+    const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    });
+
+    if (!response.ok) {
+        console.error(`Failed to delete task with id ${taskId}`, response.statusText);
+    }
 }
 
 function createTaskRow(task) {
     let taskRow = document.querySelector('[data-template="task-row"]').cloneNode(true);
+    taskRow.classList.remove('hidden');
     taskRow.removeAttribute('data-template');
 
-    // Täidame vormi väljad andmetega
     const name = taskRow.querySelector("[name='name']");
-    name.value = task.name;
-    name.addEventListener('keydown', () => {
-        task.name = name.value;
-        saveTasksToLocalStorage();
+    name.value = task.title;
+    name.addEventListener('blur', () => {
+        task.title = name.value;
+        updateTaskOnServer(task);  
     });
 
-    const checkbox = taskRow.querySelector("[name='completed']");
-    checkbox.checked = task.completed;
+    const input = taskRow.querySelector('.ant-checkbox-input');
+    const checkbox = taskRow.querySelector('.ant-checkbox');
+
+    input.checked = task.marked_as_done; 
+    if (input.checked) {
+        checkbox.classList.add('ant-checkbox-checked');
+    }
+
+    input.addEventListener('change', () => {
+        checkbox.classList.toggle('ant-checkbox-checked');
+        task.marked_as_done = input.checked; 
+        updateTaskOnServer(task); 
+    });
 
     const deleteButton = taskRow.querySelector('.delete-task');
     deleteButton.addEventListener('click', () => {
         taskList.removeChild(taskRow);
-        tasks.splice(tasks.indexOf(task), 1);
-        saveTasksToLocalStorage();
-
+        tasks = tasks.filter(t => t.id !== task.id);
+        deleteTaskFromServer(task.id);  
     });
-
-    // Valmistame checkboxi ette vajutamiseks
-    hydrateAntCheckboxes(taskRow, task);
 
     return taskRow;
 }
-
-
-
-/**
- * See funktsioon aitab lisada eridisainiga checkboxile vajalikud event listenerid
- * @param {HTMLElement} element Checkboxi wrapper element või konteiner element mis sisaldab mitut checkboxi
- */
-function hydrateAntCheckboxes(element, task) {
-    const elements = element.querySelectorAll('.ant-checkbox-wrapper');
-    for (let i = 0; i < elements.length; i++) {
-        let wrapper = elements[i];
-
-        // Kui element on juba töödeldud siis jäta vahele
-        if (wrapper.__hydrated)
-            continue;
-        wrapper.__hydrated = true;
-
-
-        const checkbox = wrapper.querySelector('.ant-checkbox');
-
-        // Kontrollime kas checkbox peaks juba olema checked, see on ainult erikujundusega checkboxi jaoks
-        const input = wrapper.querySelector('.ant-checkbox-input');
-        if (input.checked) {
-            checkbox.classList.add('ant-checkbox-checked');
-        }
-        
-        // Kui inputi peale vajutatakse siis uuendatakse checkboxi kujundust
-        input.addEventListener('change', () => {
-            checkbox.classList.toggle('ant-checkbox-checked');
-            task.completed = input.checked; 
-            saveTasksToLocalStorage();
-        });
-    }
-}
-function saveTasksToLocalStorage() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    localStorage.setItem('lastTaskId', lastTaskId);
-}    
-
-
-
-
