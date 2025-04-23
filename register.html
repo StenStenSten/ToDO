@@ -86,6 +86,11 @@
       const lastname = document.getElementById('lastname').value;
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (password.length < 6) {
+    errorMsg.textContent = 'Password must be at least 6 characters long.';
+    return;
+    }
   
       if (password !== confirmPassword) {
         errorMsg.textContent = 'Passwords do not match.';
