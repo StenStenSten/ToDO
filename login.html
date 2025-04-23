@@ -59,7 +59,7 @@
       <label for="password">Password:</label>
       <input type="password" id="password" name="password" required />
 
-      <button type="submit">Login</button>
+      <button type="submit" id="login">Login</button>
       <button type="button" onclick="window.location.href='register.html'">Registreeri konto</button>
     </form>
   </div>
@@ -71,6 +71,7 @@
     loginBtn.addEventListener('click', async () => {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
+        event.preventDefault(); 
 
         try {
             await login(username, password);
@@ -82,7 +83,7 @@
 });
 
 async function login(username, password) {
-    const response = await fetch('http://demo2.z-bit.ee/users/get-token', {
+    const response = await fetch('/api/users/get-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
